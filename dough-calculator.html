@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Impasti - calcolatore</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #EEF0EC; --paper: #FAFBF8; --ink: #2B2118; --muted: #6F6558; --line: #D6D3CA;
+  --wheat: #C99A2E; --crust: #8A5A2B;
+  --flour: #E7DFC9; --water: #7FA7B8; --yeast: #B7A27A; --salt: #9AA0A6; --sugar: #D8B98A; --oil: #B5A642;
+  color-scheme: light;
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #17140F; --paper: #211C16; --ink: #F1EADD; --muted: #A89C8A; --line: #3A3229;
+    --wheat: #E2B54B; --crust: #D49A5E; --flour: #CFC4A6; --water: #6E9AAD; --yeast: #A08C64;
+    --salt: #8A9096; --sugar: #C4A271; --oil: #9E9339;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #17140F; --paper: #211C16; --ink: #F1EADD; --muted: #A89C8A; --line: #3A3229;
+  --wheat: #E2B54B; --crust: #D49A5E; --flour: #CFC4A6; --water: #6E9AAD; --yeast: #A08C64;
+  --salt: #8A9096; --sugar: #C4A271; --oil: #9E9339;
+  color-scheme: dark;
+}
+html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+*, *::before, *::after { box-sizing: inherit; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font-family: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  font-size: 17px; line-height: 1.5;
+}
+main { max-width: 560px; margin: 0 auto; padding: 28px 20px 48px; }
+h1 { font-weight: 800; font-size: 1.55rem; line-height: 1.15; margin: 0 0 4px; letter-spacing: -0.01em; }
+.sub { color: var(--muted); margin: 0 0 24px; font-size: 0.95rem; }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--wheat); outline-offset: 2px; }
+
+.card { padding: 18px; background: var(--paper); border: 1px solid var(--line); border-radius: 14px; }
+.card h2, .steps h2 { font-size: 1.05rem; margin: 0 0 12px; font-weight: 600; }
+
+/* Pan */
+.pan { margin-bottom: 30px; }
+.pan-grid { display: grid; grid-template-columns: 1fr 1fr 0.7fr; gap: 10px; margin-bottom: 16px; }
+.pan-grid label { font-size: 0.9rem; color: var(--muted); display: flex; flex-direction: column; gap: 4px; }
+.field { display: flex; align-items: baseline; gap: 4px; border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; background: var(--bg); }
+.field input { font: inherit; font-size: 1.1rem; font-weight: 600; color: var(--ink); width: 100%; min-width: 0; border: 0; background: transparent; padding: 0; font-variant-numeric: tabular-nums; }
+.field input:focus { outline: none; }
+.field:focus-within { border-color: var(--wheat); }
+.field em { font-style: normal; color: var(--muted); font-size: 0.85rem; }
+.pan-result { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); }
+.pan-result p { margin: 0; display: flex; flex-direction: column; font-variant-numeric: tabular-nums; }
+.pan-result span { color: var(--muted); font-size: 0.85rem; }
+.pan-result strong { font-size: 1.8rem; font-weight: 800; line-height: 1.1; }
+.pan-result button { font: inherit; font-size: 0.95rem; font-weight: 600; background: var(--ink); color: var(--paper); border: 0; border-radius: 999px; padding: 9px 18px; cursor: pointer; }
+
+/* Tabs */
+.tabs { display: flex; gap: 4px; overflow-x: auto; border-bottom: 2px solid var(--line); margin-bottom: 22px; scrollbar-width: none; }
+.tabs::-webkit-scrollbar { display: none; }
+.tabs button {
+  font: inherit; font-size: 1rem; font-weight: 600; white-space: nowrap; background: none; border: 0;
+  color: var(--muted); padding: 10px 12px; margin-bottom: -2px; border-bottom: 3px solid transparent; cursor: pointer;
+}
+.tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--wheat); }
+
+/* Target */
+.target-label { display: block; color: var(--muted); font-size: 0.95rem; margin-bottom: 2px; }
+.target { display: flex; align-items: baseline; gap: 8px; border-bottom: 3px solid var(--ink); padding-bottom: 6px; }
+.target input {
+  font: inherit; font-weight: 800; font-size: clamp(3.4rem, 18vw, 5rem); line-height: 1;
+  width: 100%; min-width: 0; border: 0; background: transparent; color: var(--ink);
+  font-variant-numeric: tabular-nums; padding: 0; letter-spacing: -0.03em;
+}
+.target input:focus { outline: none; }
+.target:focus-within { border-color: var(--wheat); }
+.target span { font-size: 1.6rem; font-weight: 600; color: var(--muted); }
+.presets { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 26px; }
+.presets button {
+  font: inherit; font-size: 0.95rem; border: 1px solid var(--line); background: var(--paper); color: var(--ink);
+  padding: 7px 14px; border-radius: 999px; cursor: pointer;
+}
+.presets button[aria-pressed="true"] { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.pieces { display: flex; align-items: center; gap: 10px; margin: -12px 0 26px; color: var(--muted); font-size: 0.95rem; flex-wrap: wrap; }
+.pieces input { font: inherit; width: 4.2em; padding: 5px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); color: var(--ink); text-align: center; }
+
+/* Ingredients */
+.bar { display: flex; height: 18px; border-radius: 9px; overflow: hidden; margin-bottom: 18px; }
+.bar div { transition: flex-grow .25s ease; }
+table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+td { padding: 12px 0; border-bottom: 1px solid var(--line); vertical-align: baseline; }
+td.name { display: flex; align-items: center; gap: 10px; }
+td.name i { width: 12px; height: 12px; border-radius: 3px; flex: none; }
+td.qty { text-align: right; font-weight: 800; font-size: 1.35rem; white-space: nowrap; }
+td.pct { text-align: right; color: var(--muted); font-size: 0.85rem; width: 4.5em; padding-left: 10px; }
+.note { display: block; color: var(--muted); font-size: 0.85rem; font-weight: 400; }
+tr.total td { border-bottom: 0; font-weight: 600; }
+
+.tune { margin-top: 30px; }
+.row { margin-bottom: 16px; }
+.row:last-child { margin-bottom: 0; }
+.row label { display: flex; justify-content: space-between; font-size: 0.95rem; }
+.row output { font-weight: 600; font-variant-numeric: tabular-nums; }
+.row small { color: var(--muted); display: block; font-size: 0.82rem; }
+input[type=range] { width: 100%; accent-color: var(--crust); margin: 6px 0 2px; }
+.reset { font: inherit; font-size: 0.9rem; background: none; border: 0; color: var(--muted); text-decoration: underline; cursor: pointer; padding: 0; margin-top: 10px; }
+
+.sched { margin-top: 30px; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; padding: 3px; background: var(--bg); margin-bottom: 12px; }
+.seg button { font: inherit; font-size: 0.95rem; border: 0; background: none; color: var(--muted); padding: 6px 14px; border-radius: 999px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+.sched-row { display: flex; align-items: center; gap: 16px; }
+.sched-row .field { max-width: 9em; }
+.sched-row .reset { margin-top: 0; }
+.sched-sum { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); }
+.sched-sum div { display: flex; flex-direction: column; }
+.sched-sum span { color: var(--muted); font-size: 0.85rem; }
+.sched-sum strong { font-size: 1.35rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.steps li .when { display: block; font-size: 0.85rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.steps li .when strong { color: var(--ink); margin-right: 6px; }
+.steps li .left { color: var(--crust); font-weight: 600; margin-left: 6px; }
+.steps li.done { opacity: 0.45; }
+.steps li.now { background: var(--paper); border-left: 3px solid var(--wheat); padding: 6px 10px; border-radius: 0 8px 8px 0; }
+.steps { margin-top: 30px; }
+.steps ol { padding-left: 1.4em; margin: 0; }
+.steps li { margin-bottom: 10px; }
+.steps b { font-variant-numeric: tabular-nums; color: var(--crust); }
+.nota { margin: 20px 0 0; padding: 14px 16px; border-left: 3px solid var(--wheat); background: var(--paper); border-radius: 0 10px 10px 0; font-size: 0.95rem; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Impasti</h1>
+  <p class="sub">Calcola l’impasto per la teglia, poi scegli la ricetta: le dosi si ricalcolano mantenendo le proporzioni.</p>
+
+  <section class="card pan" aria-labelledby="panTitle">
+    <h2 id="panTitle">Quanto impasto per la tua teglia</h2>
+    <div class="pan-grid">
+      <label>Larghezza<span class="field"><input id="panW" type="number" inputmode="decimal" min="1" step="1" value="30"><em>cm</em></span></label>
+      <label>Lunghezza<span class="field"><input id="panH" type="number" inputmode="decimal" min="1" step="1" value="40"><em>cm</em></span></label>
+      <label>Teglie<span class="field"><input id="panN" type="number" inputmode="numeric" min="1" step="1" value="1"></span></label>
+    </div>
+    <div class="row">
+      <label for="ratio">Grammi per cm² <output id="ratioOut"></output></label>
+      <input id="ratio" type="range" min="0.3" max="0.8" step="0.05" value="0.5">
+      <small>0,5 è lo standard: più basso per una base sottile, più alto per una focaccia alta.</small>
+    </div>
+    <div class="pan-result">
+      <p><span id="panArea"></span><strong id="panGrams"></strong></p>
+      <button type="button" id="panApply">Usa questo peso</button>
+    </div>
+  </section>
+
+  <nav class="tabs" role="tablist" id="tabs" aria-label="Ricette"></nav>
+
+  <section id="panel" role="tabpanel">
+    <label class="target-label" for="target">Impasto finale</label>
+    <div class="target">
+      <input id="target" type="number" inputmode="numeric" min="50" step="10" value="1000" aria-label="Peso finale dell’impasto in grammi">
+      <span>g</span>
+    </div>
+    <div class="presets" id="presets"></div>
+    <div class="pieces">
+      <span>oppure</span>
+      <input id="nPieces" type="number" inputmode="numeric" min="1" value="4" aria-label="Numero di pezzi">
+      <span>pezzi da</span>
+      <input id="wPiece" type="number" inputmode="numeric" min="10" step="10" value="250" aria-label="Peso per pezzo in grammi">
+      <span>g</span>
+    </div>
+
+    <div class="bar" id="bar" aria-hidden="true"></div>
+    <table><tbody id="tbody"></tbody></table>
+
+    <section class="card tune" id="tune">
+      <h2>Regola la ricetta</h2>
+      <div id="sliders"></div>
+      <button class="reset" id="reset" type="button">Ripristina valori della ricetta</button>
+    </section>
+
+    <section class="card sched" id="sched">
+      <h2>Tempi</h2>
+      <div class="seg" role="group" aria-label="Calcola i tempi da">
+        <button type="button" data-mode="start">Inizio alle</button>
+        <button type="button" data-mode="oven">In forno alle</button>
+      </div>
+      <div class="sched-row">
+        <span class="field"><input id="schedTime" type="time" value="19:30" aria-label="Orario"></span>
+        <button type="button" class="reset" id="schedNow">Inizio adesso</button>
+      </div>
+      <div class="sched-sum" id="schedSum"></div>
+    </section>
+
+    <section class="steps">
+      <h2 id="stepsTitle">Procedimento</h2>
+      <ol id="steps"></ol>
+      <p class="nota" id="nota" hidden></p>
+    </section>
+  </section>
+</main>
+
+<script>
+(function () {
+  /*
+   * RICETTE
+   * Ogni ingrediente è in percentuale sulla farina (farina = 100).
+   * - pct: valore fisso
+   * - range: [min, max, default, step] -> diventa uno slider
+   * firstWater: frazione della farina usata come prima acqua ({acqua1} / {acqua2} nei passaggi)
+   * Nei passaggi si possono usare {nome-chiave} per inserire la dose di un ingrediente.
+   */
+  const RECIPES = [
+    {
+      id: "scuola-di-pane",
+      name: "A Scuola di Pane",
+      method: "consigliata impastatrice",
+      firstWater: 120 / 200,
+      ingredients: [
+        { key: "farina", name: "Farina tipo 0 medio/forte", pct: 100, color: "--flour" },
+        { key: "acqua", name: "Acqua", range: [70, 75, 72.5, 0.5], color: "--water",
+          hint: "La ricetta indica 140-150 g su 200 g di farina (70-75%).", split: true },
+        { key: "lievito", name: "Lievito fresco", range: [1, 2, 1.5, 0.25], color: "--yeast",
+          hint: "La ricetta indica 2-4 g su 200 g di farina (1-2%). Meno lievito, lievitazione più lenta." },
+        { key: "sale", name: "Sale", pct: 2, color: "--salt" },
+        { key: "zucchero", name: "Zucchero", pct: 2, color: "--sugar" }
+      ],
+      steps: [
+        "Sciogliere il lievito in circa {acqua1} di acqua e unirli alla farina.",
+        "Mescolare fino a che gli ingredienti siano amalgamati tra loro.",
+        "Aggiungere il sale e lo zucchero e continuare a lavorare l’impasto fino al suo completo assorbimento.",
+        "Lasciare riposare per circa 10 minuti.",
+        "Riprendere a lavorare aggiungendo l’acqua restante ({acqua2}) un goccino alla volta, continuando a impastare fino al suo completo assorbimento.",
+        "Una volta ottenuto un impasto liscio e omogeneo, metterlo in un contenitore leggermente oliato.",
+        "Far riposare in massa a 28 °C per circa 30 minuti, o fino all’1,3-1,5 del volume.",
+        "Rovesciare l’impasto sul tavolo senza farina, dividere in pezzi a seconda della teglia a disposizione, dare una leggera preforma e posizionare nella teglia oliata.",
+        "Rovesciare a testa in giù l’impasto in modo da ungere anche la parte sopra.",
+        "Lasciare lievitare per circa 1 ora.",
+        "Capovolgere l’impasto nella teglia e stendere fino ai bordi cercando di sgonfiarlo il meno possibile.",
+        "Lasciare lievitare per ancora 1 ora.",
+        "Preriscaldare il forno a 250 °C.",
+        "Condire la pizza o la focaccia a piacere e infornare per 10-15 minuti."
+      ],
+      // minuti per ogni passaggio, nello stesso ordine
+      timing: [2, 5, 8, 10, 10, 2, 30, 10, 2, 60, 5, 60, 30, 15],
+      preheat: 12, bake: 13,
+      nota: "<strong>Nota:</strong> sia la pizza che la focaccia vogliono la cottura a forno statico; potrebbe essere necessario posizionare la teglia per qualche minuto sul fondo del forno per farla cuocere bene. Per cuocere più teglie alla volta, usare la funzione ventilata invertendo di posto e girando le teglie a metà cottura, così cuociono in modo uniforme."
+    },
+    {
+      id: "morbido",
+      name: "Impasto Morbido",
+      ingredients: [
+        { key: "farina", name: "Farina tipo 0 medio/forte", pct: 100, color: "--flour" },
+        { key: "acqua", name: "Acqua", range: [60, 65, 62.5, 0.5], color: "--water",
+          hint: "La ricetta indica 120-130 g su 200 g di farina (60-65%)." },
+        { key: "olio", name: "Olio", pct: 5, color: "--oil" },
+        { key: "lievito", name: "Lievito fresco", pct: 3, color: "--yeast" },
+        { key: "sale", name: "Sale", pct: 2, color: "--salt" },
+        { key: "zucchero", name: "Zucchero", pct: 3, color: "--sugar" }
+      ],
+      steps: [
+        "Sciogliere il lievito ({lievito}) nell’acqua ({acqua}) e unirli alla farina insieme a tutti gli altri ingredienti.",
+        "Impastare fino a ottenere un impasto liscio, omogeneo e plastico.",
+        "Aiutarsi lasciando riposare per circa 10 minuti e riprendere a impastare.",
+        "Una volta ottenuto un impasto liscio e omogeneo, metterlo in un contenitore leggermente oliato.",
+        "Far riposare in massa a 28 °C per circa 15-30 minuti.",
+        "Rovesciare l’impasto sul tavolo senza farina, dividere in pezzi a seconda della teglia a disposizione, dare una leggera preforma in base alla forma della teglia e posizionare nella teglia oliata, ungendo anche la superficie.",
+        "Lasciare lievitare per circa 1 ora.",
+        "Allungare l’impasto fino agli angoli della teglia e stendere completamente.",
+        "Lasciare lievitare per ancora 1 ora.",
+        "Preriscaldare il forno a 250 °C.",
+        "Condire la pizza o la focaccia a piacere e infornare per 10-15 minuti."
+      ],
+      timing: [3, 10, 15, 2, 30, 10, 60, 5, 60, 30, 15],
+      preheat: 9, bake: 10
+    }
+  ];
+
+  const PRESETS = [250, 500, 750, 1000, 1500, 2000];
+  const STORE = "impasti-v2";
+  const $ = id => document.getElementById(id);
+  const num = (v, d = 1) => (Math.round(v * Math.pow(10, d)) / Math.pow(10, d)).toString().replace(".", ",");
+  const fmt = g => (g < 10 ? num(g, 1) : Math.round(g)) + " g";
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+  // State
+  let state = { recipe: RECIPES[0].id, target: 1000, pieces: 4, adj: {}, pan: { w: 30, l: 40, n: 1, r: 0.5 } };
+  try { const s = JSON.parse(localStorage.getItem(STORE) || "null"); if (s) state = Object.assign(state, s); } catch (e) {}
+  // migrate old single-recipe values
+  try {
+    const old = JSON.parse(localStorage.getItem("impasto-v1") || "null");
+    if (old && !state.adj["scuola-di-pane"]) {
+      state.target = +old.target || state.target;
+      state.adj["scuola-di-pane"] = { acqua: +old.hyd, lievito: +old.yeast };
+    }
+    const oldPan = JSON.parse(localStorage.getItem("impasto-pan-v1") || "null");
+    if (oldPan && !localStorage.getItem(STORE)) state.pan = { w: +oldPan.w, l: +oldPan.l, n: +oldPan.n, r: +oldPan.r };
+  } catch (e) {}
+  const save = () => { try { localStorage.setItem(STORE, JSON.stringify(state)); } catch (e) {} };
+
+  const recipe = () => RECIPES.find(r => r.id === state.recipe) || RECIPES[0];
+  const pctOf = (r, ing) => ing.range ? ((state.adj[r.id] || {})[ing.key] ?? ing.range[2]) : ing.pct;
+
+  // Tabs
+  const tabsEl = $("tabs");
+  RECIPES.forEach(r => {
+    const b = document.createElement("button");
+    b.type = "button"; b.setAttribute("role", "tab"); b.id = "tab-" + r.id; b.textContent = r.name;
+    b.setAttribute("aria-controls", "panel");
+    b.addEventListener("click", () => { location.hash = r.id; });
+    tabsEl.appendChild(b);
+  });
+  tabsEl.addEventListener("keydown", e => {
+    if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+    const i = RECIPES.findIndex(r => r.id === state.recipe);
+    const n = (i + (e.key === "ArrowRight" ? 1 : -1) + RECIPES.length) % RECIPES.length;
+    location.hash = RECIPES[n].id;
+    $("tab-" + RECIPES[n].id).focus();
+  });
+  function fromHash() {
+    const h = location.hash.slice(1);
+    if (RECIPES.some(r => r.id === h)) state.recipe = h;
+    buildRecipe();
+  }
+  window.addEventListener("hashchange", fromHash);
+
+  // Presets
+  const target = $("target"), nPieces = $("nPieces"), wPiece = $("wPiece");
+  const presetsEl = $("presets");
+  PRESETS.forEach(v => {
+    const b = document.createElement("button");
+    b.type = "button"; b.dataset.v = v;
+    b.textContent = v >= 1000 ? num(v / 1000, 1) + " kg" : v + " g";
+    b.addEventListener("click", () => { target.value = v; syncPieces(); render(); });
+    presetsEl.appendChild(b);
+  });
+  function syncPieces() {
+    const n = Math.max(1, +nPieces.value || 1);
+    wPiece.value = Math.round((+target.value || 0) / n);
+  }
+  target.addEventListener("input", () => { syncPieces(); render(); });
+  const fromPieces = () => {
+    target.value = Math.max(1, +nPieces.value || 1) * Math.max(0, +wPiece.value || 0); render();
+  };
+  nPieces.addEventListener("input", fromPieces);
+  wPiece.addEventListener("input", fromPieces);
+
+  // Recipe panel
+  function buildRecipe() {
+    const r = recipe();
+    RECIPES.forEach(x => $("tab-" + x.id).setAttribute("aria-selected", String(x.id === r.id)));
+    $("panel").setAttribute("aria-labelledby", "tab-" + r.id);
+    $("stepsTitle").textContent = "Procedimento" + (r.method ? " (" + r.method + ")" : "");
+    const nota = $("nota");
+    nota.hidden = !r.nota; nota.innerHTML = r.nota || "";
+
+    const sliders = r.ingredients.filter(i => i.range);
+    $("tune").hidden = !sliders.length;
+    $("sliders").innerHTML = sliders.map(i =>
+      `<div class="row"><label for="s-${i.key}">${esc(i.name)} <output id="o-${i.key}"></output></label>` +
+      `<input id="s-${i.key}" data-key="${i.key}" type="range" min="${i.range[0]}" max="${i.range[1]}" step="${i.range[3]}" value="${pctOf(r, i)}">` +
+      (i.hint ? `<small>${esc(i.hint)}</small>` : "") + `</div>`
+    ).join("");
+    $("sliders").querySelectorAll("input").forEach(el => el.addEventListener("input", () => {
+      (state.adj[r.id] = state.adj[r.id] || {})[el.dataset.key] = +el.value; render();
+    }));
+    render();
+  }
+  $("reset").addEventListener("click", () => { delete state.adj[recipe().id]; buildRecipe(); });
+
+  function render() {
+    const r = recipe();
+    const T = Math.max(0, +target.value || 0);
+    state.target = T; state.pieces = Math.max(1, +nPieces.value || 1);
+    const sum = r.ingredients.reduce((a, i) => a + pctOf(r, i), 0);
+    const flour = T / (sum / 100);
+    const rows = r.ingredients.map(i => ({ ...i, p: pctOf(r, i), g: flour * pctOf(r, i) / 100 }));
+    const vals = {};
+    rows.forEach(x => { vals[x.key] = x.g; });
+    const water = rows.find(x => x.split);
+    if (water && r.firstWater) {
+      vals.acqua1 = Math.min(flour * r.firstWater, water.g);
+      vals.acqua2 = water.g - vals.acqua1;
+    }
+
+    $("tbody").innerHTML = rows.map(x => {
+      const note = x.split && vals.acqua1 != null ? `circa ${fmt(vals.acqua1)} subito, il resto un po’ alla volta` : "";
+      return `<tr><td class="name"><i style="background:var(${x.color || "--flour"})"></i><span>${esc(x.name)}${note ? `<span class="note">${note}</span>` : ""}</span></td>` +
+        `<td class="qty">${fmt(x.g)}</td><td class="pct">${num(x.p)}%</td></tr>`;
+    }).join("") + `<tr class="total"><td class="name">Totale</td><td class="qty">${fmt(rows.reduce((a, x) => a + x.g, 0))}</td><td class="pct"></td></tr>`;
+
+    $("bar").innerHTML = rows.map(x => `<div style="flex-grow:${x.g};background:var(${x.color || "--flour"})"></div>`).join("");
+
+    rows.filter(x => x.range).forEach(x => { const o = $("o-" + x.key); if (o) o.textContent = num(x.p) + "%"; });
+
+    lastVals = vals;
+    renderSteps();
+
+    presetsEl.querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", String(+b.dataset.v === T)));
+    save();
+  }
+
+  // Schedule
+  let lastVals = {};
+  state.sched = state.sched || { mode: "oven", time: "19:30" };
+  const schedTime = $("schedTime");
+  const pad = n => String(n).padStart(2, "0");
+  const hhmm = ms => { const d = new Date(ms); return pad(d.getHours()) + ":" + pad(d.getMinutes()); };
+  function clock(ms) {
+    const d = new Date(ms);
+    let s = hhmm(ms);
+    if (d.toDateString() !== new Date().toDateString()) s += " " + d.toLocaleDateString("it-IT", { weekday: "short" });
+    return s;
+  }
+  const dur = m => m >= 60 ? num(m / 60, 1) + " h" : m + " min";
+  function schedule(r) {
+    if (!r.timing || !state.sched.time) return null;
+    const [hh, mm] = state.sched.time.split(":").map(Number);
+    const now = new Date();
+    const anchor = new Date(now); anchor.setHours(hh, mm, 0, 0);
+    const skip = i => i === r.preheat || i === r.bake;
+    const seq = r.timing.reduce((a, m, i) => skip(i) ? a : a + m, 0);
+    let start;
+    if (state.sched.mode === "oven") {
+      if (anchor < now) anchor.setDate(anchor.getDate() + 1);
+      start = +anchor - seq * 60000;
+    } else start = +anchor;
+    const times = []; let t = start;
+    r.timing.forEach((m, i) => {
+      if (skip(i)) { times.push(null); return; }
+      times.push({ s: t, e: t + m * 60000 }); t += m * 60000;
+    });
+    const oven = t;
+    times[r.bake] = { s: oven, e: oven + r.timing[r.bake] * 60000 };
+    times[r.preheat] = { s: oven - r.timing[r.preheat] * 60000, e: oven };
+    return { times, start, oven, end: times[r.bake].e };
+  }
+  function renderSteps() {
+    const r = recipe();
+    const sc = schedule(r);
+    $("sched").hidden = !r.timing;
+    const now = Date.now();
+    $("steps").innerHTML = r.steps.map((s, i) => {
+      const text = esc(s).replace(/\{([\w-]+)\}/g, (m, k) => lastVals[k] != null ? `<b>${fmt(lastVals[k])}</b>` : m);
+      if (!sc) return `<li>${text}</li>`;
+      const t = sc.times[i], m = r.timing[i];
+      let cls = "", left = "";
+      if (now >= t.e) cls = "done";
+      else if (now >= t.s) { cls = "now"; left = `<span class="left">mancano ${dur(Math.ceil((t.e - now) / 60000))}</span>`; }
+      return `<li class="${cls}"><span class="when"><strong>${clock(t.s)}</strong>${m ? dur(m) : ""}${left}</span>${text}</li>`;
+    }).join("");
+    $("schedSum").innerHTML = sc ? [["Inizio", sc.start], ["In forno", sc.oven], ["Pronto", sc.end]]
+      .map(([l, v]) => `<div><span>${l}</span><strong>${clock(v)}</strong></div>`).join("") : "";
+    document.querySelectorAll("#sched .seg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.mode === state.sched.mode)));
+  }
+  document.querySelectorAll("#sched .seg button").forEach(b => b.addEventListener("click", () => {
+    const sc = schedule(recipe());
+    if (sc) { state.sched.time = hhmm(b.dataset.mode === "oven" ? sc.oven : sc.start); schedTime.value = state.sched.time; }
+    state.sched.mode = b.dataset.mode; save(); renderSteps();
+  }));
+  schedTime.addEventListener("input", () => { state.sched.time = schedTime.value; save(); renderSteps(); });
+  $("schedNow").addEventListener("click", () => {
+    state.sched = { mode: "start", time: hhmm(Date.now()) }; schedTime.value = state.sched.time; save(); renderSteps();
+  });
+  setInterval(renderSteps, 30000);
+
+  // Pan
+  const panW = $("panW"), panH = $("panH"), panN = $("panN"), ratio = $("ratio");
+  panW.value = state.pan.w; panH.value = state.pan.l; panN.value = state.pan.n; ratio.value = state.pan.r;
+  let panGrams = 0;
+  function renderPan() {
+    const w = Math.max(0, +panW.value || 0), l = Math.max(0, +panH.value || 0);
+    const n = Math.max(1, Math.round(+panN.value || 1)), rr = +ratio.value;
+    panGrams = Math.round(w * l * rr * n);
+    $("ratioOut").textContent = rr.toFixed(2).replace(".", ",");
+    $("panArea").textContent = Math.round(w * l) + " cm²" + (n > 1 ? " × " + n + " teglie" : "") + " × " + rr.toFixed(2).replace(".", ",");
+    $("panGrams").textContent = panGrams + " g";
+    state.pan = { w: panW.value, l: panH.value, n: panN.value, r: ratio.value };
+    save();
+  }
+  [panW, panH, panN, ratio].forEach(el => el.addEventListener("input", renderPan));
+  $("panApply").addEventListener("click", () => {
+    target.value = panGrams;
+    nPieces.value = Math.max(1, Math.round(+panN.value || 1));
+    wPiece.value = Math.round(panGrams / nPieces.value);
+    render();
+    target.scrollIntoView({ behavior: "smooth", block: "center" });
+  });
+
+  // Init
+  target.value = state.target; nPieces.value = state.pieces; syncPieces();
+  schedTime.value = state.sched.time;
+  renderPan();
+  fromHash();
+})();
+</script>
+</body>
+</html>
